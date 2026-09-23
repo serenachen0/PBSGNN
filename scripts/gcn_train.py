@@ -3,9 +3,8 @@
    Author: Serena Chen
 """
 import os, sys, time
-import numpy as np
 import torch
-from random import Random
+import random
 from torch_geometric.loader import DataLoader
 from model import GCN
 from loss import MCC_Loss
@@ -18,7 +17,7 @@ bs = 128 #batch size
 epochs = 500 #total number of epochs
 
 if backbone == True and sequence == True:
-    node_feat_num = 1282
+    #node_feat_num = 1282
     graph_type = "cutoff" + str(cutoff) + "_phipsi_esm2embeddings" # input graphs for training
     if cutoff == 4: 
         print ("Training: backbone & sequence, 4Å cutoff")
@@ -26,63 +25,75 @@ if backbone == True and sequence == True:
         dropout_rates = [0.276] #% of the neurons in each hidden layer be randomly dropped out; used only in training, see models.py
         optimizer_name = 'Adam'
         lr = 0.003 #learning rate
+        model_folder = 'model_cutoff4_1282'
     elif cutoff == 6: 
         print ("Training: backbone & sequence, 6Å cutoff")
         hidden_neurons = [118]
         dropout_rates = [0.308]
         optimizer_name = 'Adam'
-        lr = 0.010 
+        lr = 0.010
+        model_folder = 'model_cutoff6_1282'
     elif cutoff == 8: 
         print ("Training: backbone & sequence, 8Å cutoff")
         hidden_neurons = [297]
         dropout_rates = [0.439]
         optimizer_name = 'Adam'
         lr = 0.010
+        model_folder = 'model_cutoff8_1282'
     elif cutoff == 10: 
         print ("Training: backbone & sequence, 10Å cutoff")
         hidden_neurons = [85]
         dropout_rates = [0.648]
         optimizer_name = 'Adam'
         lr = 0.014 
+        model_folder = 'model_cutoff10_1282'
     elif cutoff == 12:
         print ("Training: backbone & sequence, 12Å cutoff")
         hidden_neurons = [322] 
         dropout_rates = [0.295]
         optimizer_name = 'Adam'
-        lr = 0.012       
+        lr = 0.012
+        model_folder = 'model_cutoff12_1282'
     elif cutoff == 16:
         print ("Training: backbone & sequence, 16Å cutoff")
         hidden_neurons = [59] 
         dropout_rates = [0.263]
         optimizer_name = 'Adam'
         lr = 0.027
+        model_folder = 'model_cutoff16_1282'
     elif cutoff == 20:
         print ("Training: backbone & sequence, 20Å cutoff")
         hidden_neurons = [44]
         dropout_rates = [0.693]
         optimizer_name = 'Adam'
         lr = 0.014
+        model_folder = 'model_cutoff20_1282'
     elif cutoff == 24:
         print ("Training: backbone & sequence, 24Å cutoff")
         hidden_neurons = [9] 
         dropout_rates = [0.507] 
         optimizer_name = 'Adam'
         lr = 0.030
+        model_folder = 'model_cutoff24_1282'
     elif cutoff == "_anno24_else8":
         print ("Training: backbone & sequence, 24Å cutoff between binding and 8Å cutoff else")
         hidden_neurons = [98] 
         dropout_rates = [0.357]
         optimizer_name = 'Adam'
         lr = 0.019
+        model_folder = 'model_cutoff_anno24_else8_1282'
     elif cutoff == "_anno8_else24":
         print ("Training: backbone & sequence, 8Å cutoff between binding and 24Å cutoff else")
         hidden_neurons = [12] 
         dropout_rates = [0.260]
         optimizer_name = 'Adam'
         lr = 0.027
+        model_folder = 'model_cutoff_anno8_else24_1282'
+    else:
+        sys.exit(f"Unsupported cutoff for sequence and backbone mode: {cutoff}")
 
 elif backbone == False and sequence == True:
-    node_feat_num = 1280
+    #node_feat_num = 1280
     if cutoff == 8:
         graph_type = "cutoff8_esm2embeddings"
         print ("Training: sequence, 8Å cutoff")
@@ -90,28 +101,19 @@ elif backbone == False and sequence == True:
         #dropout_rates = [0.439]
         #optimizer_name = 'Adam'
         #lr = 0.010 #learning rate
+        #model_folder = 'model_cutoff8_1280_nohpo'
         
         #HPO
         hidden_neurons = [113]
         dropout_rates = [0.618]
         optimizer_name = 'Adam'
         lr = 0.017
-    elif cutoff == "_anno24_else8":
-        graph_type = "cutoff" + str(cutoff) + "_esm2embeddings"
-        print ("Training: sequence, 24Å cutoff between binding and 8Å cutoff else")
-        hidden_neurons = [98] 
-        dropout_rates = [0.357]
-        optimizer_name = 'Adam'
-        lr = 0.019
-    elif cutoff == "_pred_anno24_else8":
-        graph_type = "cutoff" + str(cutoff) + "_esm2embeddings"
-        print ("Training: sequence, 24Å cutoff between predicted binding and 8Å cutoff else")
-        hidden_neurons = [105] 
-        dropout_rates = [0.489]
-        optimizer_name = 'Adam'
-        lr = 0.023
+        model_folder = 'model_cutoff8_1280'
+    else:
+        sys.exit(f"Unsupported cutoff for sequence-only mode: {cutoff}")
+
 elif backbone == True and sequence == False:
-    node_feat_num = 2
+    #node_feat_num = 2
     if cutoff == 8:
         graph_type = "cutoff8_phipsi"
         print ("Training: backbone, 8Å cutoff")
@@ -119,21 +121,29 @@ elif backbone == True and sequence == False:
         #dropout_rates = [0.439]
         #optimizer_name = 'Adam'
         #lr = 0.010 #learning rate
+        #model_folder = 'model_cutoff8_2_nohpo'
         
         #HPO
         hidden_neurons = [124, 113, 8, 102]
         dropout_rates = [0.234, 0.349, 0.406, 0.356]
         optimizer_name = 'RMSprop'
         lr = 0.001
+        model_folder = 'model_cutoff8_2'
+    else:
+        sys.exit(f"Unsupported cutoff for backbone-only mode: {cutoff}")
         
-dataset_graphs = "../datasets/UP000005640_9606_HUMAN_v4_binding_cutoff8_phipsi_esm2embeddings.pt"
+dataset_graphs = "../datasets/UP000005640_9606_HUMAN_v4_binding_" + graph_type + ".pt"
 
 #output
-out_models_dir = "../gnns"
+out_models_dir = "../gnns/" + model_folder
 out_loss = out_models_dir + "/train_loss.txt"
 #####################################
 
+# Reproducibility
 torch.manual_seed(12345)
+random.seed(12345)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(12345)
 
 if not os.path.exists(out_models_dir):
     os.makedirs(out_models_dir)
@@ -142,10 +152,10 @@ if not os.path.exists(out_models_dir):
 train_set = torch.load(dataset_graphs)
     
 #shuffle the dataset
-Random(42).shuffle(train_set)
+random.Random(42).shuffle(train_set)
 
 #train
-torch.autograd.set_detect_anomaly(True)
+torch.autograd.set_detect_anomaly(False)
 
 start_time = time.time()
     
@@ -173,6 +183,7 @@ for epoch in range(epochs):
         
     running_loss = 0.0
     for i, data in enumerate(train_loader):
+        data = data.to(device)
 
         # Zero gradients for every batch
         optimizer.zero_grad()

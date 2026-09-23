@@ -28,7 +28,7 @@ epochs = 100 #total number of epochs
 
 torch.manual_seed(12345)
 #load the dataset
-dataset = torch.load(dataset_graphs)
+dataset = torch.load(dataset_graphs, weights_only = False)
 
 #define the model
 def define_model(trial, train_set):
@@ -69,13 +69,14 @@ def objective(trial):
         optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), lr=lr)
 
         loss_fn = MCC_Loss()
-        metric = BinaryMatthewsCorrCoef()
+        metric = BinaryMatthewsCorrCoef().to(device)
 
         # Train the model.
         for epoch in range(epochs):
             model.train()
 
             for i, data in enumerate(train_loader):
+                data = data.to(device)
 
                 # Zero gradients for every batch
                 optimizer.zero_grad()
@@ -92,15 +93,16 @@ def objective(trial):
 
             # Validation of the model.
             model.eval()
-            metric_sum = torch.zeros(train_set[0].y.size()[1])
+            metric_sum = torch.zeros(train_set[0].y.size()[1], device=device)
             with torch.no_grad():
                 for j, vdata in enumerate(val_loader):
+                    vdata = vdata.to(device)
                     target = vdata.y
                     pred = model(vdata, dropout_rates) #dropouts aren't applied in validation, see model.py
                     metric_sum = metric_sum.add(metric(pred.t(), target.t()))
             score = metric_sum / len(val_loader)
             
-        scores.append(score)
+        scores.append(score.detach().cpu().numpy())
         evaluation = np.mean(scores)
         
         trial.report(evaluation, fold_idx)    

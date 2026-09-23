@@ -3,9 +3,9 @@
    Author: Serena Chen
 """
 
-import os
+import os, sys
 import torch
-from torch_geometric.data import Data, Dataset
+from torch_geometric.data import Data
 import numpy as np
 from data_utils import pdb2dist_arr, dist_arr2matrix, pdb2dihedral, pdb2fasta, fasta2esm2embeddings
 from tqdm import tqdm
@@ -13,7 +13,7 @@ from tqdm import tqdm
 ############## Variable settings ################
 ds_dir = "../datasets"
 pdb_dir = "../pdbs" #folder that stores AFDB PDB files
-model_weights = "./weights" #folder that stores ESM-2 pretrained model weights
+model_weights = "../weights" #folder that stores ESM-2 pretrained model weights
 version = "v4"
 proteomeid_dict = {"HUMAN" : "UP000005640_9606",
                    "MOUSE" : "UP000000589_10090",
@@ -43,13 +43,17 @@ for organism, proteomeid in proteomeid_dict.items():
     inpfl = ds_dir + "/" + proteomeid + "_" + organism + "_" + version + "_" + annotation + "_all_uniprot.txt"
     outfl = ds_dir + "/" + proteomeid + "_" + organism + "_" + version + "_" + annotation + "_cutoff" + str(dist_cutoff) + "_" + suffix + ".pt"
 
+    # do not overwrite existing output file
+    if os.path.exists(outfl):
+        print(f"Skipping {organism}: output file already exists: {outfl}")
+        continue
+    
     #get total number of lines in the inpfl
     with open(inpfl, 'r') as fl:
         next(fl)
         total_ids = sum(1 for line in fl)
 
     #generate graphs
-    fh_out = open(outfl, "w+")
     dataset = []
     with open(inpfl, 'r') as fl:
         next(fl)  # skip the header line
@@ -147,8 +151,9 @@ for organism, proteomeid in proteomeid_dict.items():
                 dataset.append(data)
                 
                 #clean up
-                os.remove(fastafl)
-                os.remove(esm2embeddingsfl)
+                if esm2:
+                    os.remove(fastafl)
+                    os.remove(esm2embeddingsfl)
 
     torch.save(dataset, outfl) #save all graphs in a file
 

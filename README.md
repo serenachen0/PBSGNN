@@ -1,5 +1,5 @@
 # PBSGNN
-To investigate cutoff distances and node features for binding site residue prediction with graph neural networks.
+To investigate cutoff distances and node features for protein binding site residue prediction with graph neural networks.
 
 Files required:
 - Download PDB files from AlphaFold Protein Structure Database and save the files in ./pdbs
@@ -11,7 +11,7 @@ Four organism datasets are provided in ./datasets, each includes a list of UniPr
 - Rat - UP000002494_10116_RAT_v4_binding_all_uniprot.txt
 - Yeast - UP000002311_559292_YEAST_v4_binding_all_uniprot.txt
 
-14 GNNs are provided in ./gnns:
+The model checkpoints from the last ten training epochs (model_490–model_499) for each of the 14 GNNs are provided in ./gnns:
 File name                     | Cutoff (Å) | Node feature       | Hyperparameter optimized? (Y/N)
 | :---------------------------|:----------:|:------------------:| :------------------------------------------------:
 model_cutoff4_1282            |4           |Sequence & structure| Y   
